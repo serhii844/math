@@ -17,12 +17,6 @@ body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-h1 {
-  text-align: center;
-  font-size: 22px;
-  margin-bottom: 20px;
-}
-
 .task {
   display: flex;
   align-items: center;
@@ -66,13 +60,6 @@ h1 {
   background: #0056b3;
 }
 
-.attempts {
-  text-align: center;
-  font-size: 16px;
-  color: #d9534f;
-  margin-bottom: 10px;
-}
-
 .solved-container {
   margin-top: 20px;
   font-size: 16px;
@@ -82,8 +69,11 @@ h1 {
   display: flex;
   align-items: center;
   margin-top: 8px;
+  padding: 6px;
+  border-radius: 8px;
 }
 
-.solved-example span {
-  margin-left: 5px;
+/* Нечетные строки подсвечиваем */
+.solved-example:nth-child(odd) {
+  background: #f0f8ff;
 }

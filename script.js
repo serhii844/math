@@ -6,6 +6,7 @@ const exampleEl = document.getElementById("example");
 const answerEl = document.getElementById("answer");
 const checkBtn = document.getElementById("checkBtn");
 const iconEl = document.getElementById("icon");
+const attemptsEl = document.getElementById("attempts");
 const solvedContainer = document.getElementById("solvedContainer");
 
 function generateExample() {
@@ -17,6 +18,7 @@ function generateExample() {
   exampleEl.textContent = `${bigger} - ${smaller}`;
   answerEl.value = "";
   iconEl.textContent = "";
+  attemptsEl.textContent = `Невдалi спроби: 0`;
   attempts = 0;
 }
 
@@ -42,12 +44,15 @@ checkBtn.addEventListener("click", () => {
     const solvedExample = document.createElement("div");
     solvedExample.classList.add("solved-example");
 
-    let text = `${exampleEl.textContent} = ${correctAnswer} <span style="color:green">✔️</span>`;
+    let text = `${exampleEl.textContent} = ${correctAnswer}`;
+    let greenIcon = `<span class="icon-green">✔️</span>`;
     if (attempts > 0) {
-      text += ` <span style="color:#d9534f">(Невдалi спроби: ${attempts})</span>`;
+      text += `${greenIcon}<span style="color:#d9534f">(Невдалi спроби: ${attempts})</span>`;
+    } else {
+      text += greenIcon;
     }
-    solvedExample.innerHTML = text;
 
+    solvedExample.innerHTML = text;
     solvedContainer.appendChild(solvedExample);
 
     generateExample();
@@ -55,6 +60,7 @@ checkBtn.addEventListener("click", () => {
     iconEl.textContent = "❌";
     iconEl.style.color = "red";
     attempts++;
+    attemptsEl.textContent = `Невдалi спроби: ${attempts}`;
   }
 });
 

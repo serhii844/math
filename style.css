@@ -60,6 +60,13 @@ body {
   background: #0056b3;
 }
 
+.attempts {
+  text-align: center;
+  font-size: 16px;
+  color: #d9534f;
+  margin: 10px 0;
+}
+
 .solved-container {
   margin-top: 20px;
   font-size: 16px;
@@ -76,4 +83,11 @@ body {
 /* Нечетные строки подсвечиваем */
 .solved-example:nth-child(odd) {
   background: #f0f8ff;
+}
+
+.icon-green {
+  color: green;
+  margin-left: 10px;  /* отступ от текста до галочки */
+  margin-right: 10px; /* отступ от галочки до скобок */
+  font-size: 18px;
 }

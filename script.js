@@ -6,7 +6,6 @@ const exampleEl = document.getElementById("example");
 const answerEl = document.getElementById("answer");
 const checkBtn = document.getElementById("checkBtn");
 const iconEl = document.getElementById("icon");
-const attemptsEl = document.getElementById("attempts");
 const solvedContainer = document.getElementById("solvedContainer");
 
 function generateExample() {
@@ -18,7 +17,6 @@ function generateExample() {
   exampleEl.textContent = `${bigger} - ${smaller}`;
   answerEl.value = "";
   iconEl.textContent = "";
-  attemptsEl.textContent = "";
   attempts = 0;
 }
 
@@ -43,23 +41,20 @@ checkBtn.addEventListener("click", () => {
     // Перемещаем решенный пример вниз
     const solvedExample = document.createElement("div");
     solvedExample.classList.add("solved-example");
-    solvedExample.innerHTML = `${exampleEl.textContent} = ${correctAnswer} <span style="color:green">✔️</span>`;
-    solvedContainer.appendChild(solvedExample);
 
-    // Если были неудачные попытки
+    let text = `${exampleEl.textContent} = ${correctAnswer} <span style="color:green">✔️</span>`;
     if (attempts > 0) {
-      const failNote = document.createElement("div");
-      failNote.style.color = "#d9534f";
-      failNote.textContent = `Невдалi спроби: ${attempts}`;
-      solvedContainer.appendChild(failNote);
+      text += ` <span style="color:#d9534f">(Невдалi спроби: ${attempts})</span>`;
     }
+    solvedExample.innerHTML = text;
+
+    solvedContainer.appendChild(solvedExample);
 
     generateExample();
   } else {
     iconEl.textContent = "❌";
     iconEl.style.color = "red";
     attempts++;
-    attemptsEl.textContent = `Невдалi спроби: ${attempts}`;
   }
 });
 

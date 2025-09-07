@@ -1,6 +1,7 @@
 let correctAnswer;
 let attempts = 0;
 let solvedCount = 0;
+let totalErrors = 0;
 
 const exampleEl = document.getElementById("example");
 const answerEl = document.getElementById("answer");
@@ -18,7 +19,7 @@ function generateExample() {
   exampleEl.textContent = `${bigger} - ${smaller}`;
   answerEl.value = "";
   iconEl.textContent = "";
-  attemptsEl.textContent = `Невдалi спроби: 0`;
+  attemptsEl.textContent = `Помилки: 0`;
   attempts = 0;
 }
 
@@ -40,6 +41,16 @@ checkBtn.addEventListener("click", () => {
       solvedCounter.textContent = `Вирішено прикладів: ${solvedCount}`;
     }
 
+    // Добавляем счетчик всех ошибок
+    let totalErrorsEl = document.getElementById("totalErrors");
+    if (!totalErrorsEl) {
+      totalErrorsEl = document.createElement("div");
+      totalErrorsEl.id = "totalErrors";
+      totalErrorsEl.className = "total-errors";
+      solvedCounter.insertAdjacentElement("afterend", totalErrorsEl);
+    }
+    totalErrorsEl.textContent = `Всього помилок: ${totalErrors}`;
+
     // Перемещаем решенный пример вниз
     const solvedExample = document.createElement("div");
     solvedExample.classList.add("solved-example");
@@ -47,7 +58,7 @@ checkBtn.addEventListener("click", () => {
     let text = `${exampleEl.textContent} = ${correctAnswer}`;
     let greenIcon = `<span class="icon-green">✔️</span>`;
     if (attempts > 0) {
-      text += `${greenIcon}<span style="color:#d9534f">(Невдалi спроби: ${attempts})</span>`;
+      text += `${greenIcon}<span style="color:#d9534f">(Помилки: ${attempts})</span>`;
     } else {
       text += greenIcon;
     }
@@ -60,7 +71,10 @@ checkBtn.addEventListener("click", () => {
     iconEl.textContent = "❌";
     iconEl.style.color = "red";
     attempts++;
-    attemptsEl.textContent = `Невдалi спроби: ${attempts}`;
+    totalErrors++;
+    attemptsEl.textContent = `Помилки: ${attempts}`;
+    answerEl.value = ""; // очищаем поле
+    answerEl.focus();
   }
 });
 

@@ -91,3 +91,8 @@ body {
   margin-right: 10px; /* отступ от галочки до скобок */
   font-size: 18px;
 }
+
+.total-errors {
+  margin-top: 4px;
+  color: #d9534f;
+}

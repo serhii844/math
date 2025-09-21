@@ -9,6 +9,7 @@ const checkBtn = document.getElementById("checkBtn");
 const iconEl = document.getElementById("icon");
 const attemptsEl = document.getElementById("attempts");
 const solvedContainer = document.getElementById("solvedContainer");
+const codeResult = document.getElementById("codeResult");
 
 function generateExample() {
   let a = Math.floor(Math.random() * 90) + 10;
@@ -24,6 +25,12 @@ function generateExample() {
 }
 
 checkBtn.addEventListener("click", () => {
+  // если поле пустое — ничего не делаем
+  if (answerEl.value.trim() === "") {
+    answerEl.focus();
+    return;
+  }
+
   const userAnswer = Number(answerEl.value);
   if (userAnswer === correctAnswer) {
     solvedCount++;
@@ -65,6 +72,12 @@ checkBtn.addEventListener("click", () => {
 
     solvedExample.innerHTML = text;
     solvedContainer.appendChild(solvedExample);
+
+    // Если решено N примеров — показать код
+    if (solvedCount === CONFIG.N) {
+      codeResult.style.display = "block";
+      codeResult.textContent = `Ваш код: ${CONFIG.K}`;
+    }
 
     generateExample();
   } else {

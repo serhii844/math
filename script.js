@@ -1,109 +1,213 @@
-let firstNum, secondNum, operation, mistakes = 0;
+let correctAnswer;
+let attempts = 0;
+let solvedCount = 0;
+let totalErrors = 0;
 
+let firstNum, secondNum; // сохраняем текущие числа примера
+
+const exampleEl = document.getElementById("example");
+const answerEl = document.getElementById("answer");
+const checkBtn = document.getElementById("checkBtn");
+const splitBtn = document.getElementById("splitBtn");
+const iconEl = document.getElementById("icon");
+const attemptsEl = document.getElementById("attempts");
+const solvedContainer = document.getElementById("solvedContainer");
+const splitArea = document.getElementById("splitArea");
+
+// ---- Генерация примера ----
 function generateExample() {
-  firstNum = Math.floor(Math.random() * 90) + 10; // двузначное
-  secondNum = Math.floor(Math.random() * 9) + 1;  // однозначное
-  operation = "-";
-  document.getElementById("task").innerHTML = `
-    ${firstNum} ${operation} ${secondNum} = 
-    <input id="answer" type="number" style="width:60px">
-  `;
+  const operation = CONFIG.operations[Math.floor(Math.random() * CONFIG.operations.length)];
+
+  let firstRules = CONFIG.digits.filter(r => r.startsWith("1=")).map(r => parseInt(r.split("=")[1]));
+  let secondRules = CONFIG.digits.filter(r => r.startsWith("2=")).map(r => parseInt(r.split("=")[1]));
+
+  if (firstRules.length === 0) firstRules = [2];
+  if (secondRules.length === 0) secondRules = [2];
+
+  const firstDigits = firstRules[Math.floor(Math.random() * firstRules.length)];
+  const secondDigits = secondRules[Math.floor(Math.random() * secondRules.length)];
+
+  firstNum = generateNumber(firstDigits);
+  secondNum = generateNumber(secondDigits);
+
+  if (CONFIG.order === "1>2" && firstNum <= secondNum) {
+    firstNum = secondNum + Math.floor(Math.random() * 9 + 1);
+  } else if (CONFIG.order === "1<2" && firstNum >= secondNum) {
+    secondNum = firstNum + Math.floor(Math.random() * 9 + 1);
+  }
+
+  switch (operation) {
+    case "+": correctAnswer = firstNum + secondNum; break;
+    case "-": correctAnswer = firstNum - secondNum; break;
+    case "*": correctAnswer = firstNum * secondNum; break;
+    case "/":
+      correctAnswer = Math.floor(firstNum / secondNum);
+      firstNum = correctAnswer * secondNum;
+      break;
+  }
+
+  if (correctAnswer > CONFIG.maxResult || correctAnswer < 0) {
+    return generateExample();
+  }
+
+  exampleEl.textContent = `${firstNum} - ${secondNum}`;
+  answerEl.value = "";
+  iconEl.textContent = "";
+  attemptsEl.textContent = `Помилки: 0`;
+  attempts = 0;
+  splitArea.innerHTML = "";
 }
 
-document.getElementById("checkBtn").addEventListener("click", function () {
-  const userAnswer = parseInt(document.getElementById("answer").value);
-  const correct = eval(`${firstNum} ${operation} ${secondNum}`);
-  if (isNaN(userAnswer)) return; // кнопка не работает если поле пустое
-  if (userAnswer === correct) {
-    alert("Правильно!");
+function generateNumber(d) {
+  const min = Math.pow(10, d - 1);
+  const max = Math.pow(10, d) - 1;
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// ---- Проверка ответа ----
+checkBtn.addEventListener("click", () => {
+  const userAnswer = answerEl.value.trim();
+  if (userAnswer === "") return;
+
+  if (Number(userAnswer) === correctAnswer) {
+    solvedCount++;
+    iconEl.textContent = "✔️";
+    iconEl.style.color = "green";
+
+    let solvedCounter = document.getElementById("solvedCounter");
+    if (!solvedCounter) {
+      solvedCounter = document.createElement("div");
+      solvedCounter.id = "solvedCounter";
+      solvedCounter.textContent = `Вирішено прикладів: ${solvedCount}`;
+      solvedContainer.prepend(solvedCounter);
+    } else {
+      solvedCounter.textContent = `Вирішено прикладів: ${solvedCount}`;
+    }
+
+    let totalErrorsEl = document.getElementById("totalErrors");
+    if (!totalErrorsEl) {
+      totalErrorsEl = document.createElement("div");
+      totalErrorsEl.id = "totalErrors";
+      totalErrorsEl.className = "total-errors";
+      solvedCounter.insertAdjacentElement("afterend", totalErrorsEl);
+    }
+    totalErrorsEl.textContent = `Всього помилок: ${totalErrors}`;
+
+    const solvedExample = document.createElement("div");
+    solvedExample.classList.add("solved-example");
+    let text = `${exampleEl.textContent} = ${correctAnswer}`;
+    let greenIcon = `<span class="icon-green">✔️</span>`;
+    if (attempts > 0) {
+      text += `${greenIcon}<span style="color:#d9534f">(Помилки: ${attempts})</span>`;
+    } else {
+      text += greenIcon;
+    }
+
+    solvedExample.innerHTML = text;
+    solvedContainer.appendChild(solvedExample);
+
+    if (solvedCount === CONFIG.N) {
+      const codeMsg = document.createElement("div");
+      codeMsg.className = "code-msg";
+      codeMsg.style.marginTop = "15px";
+      codeMsg.style.fontSize = "18px";
+      codeMsg.style.fontWeight = "bold";
+      codeMsg.style.color = "#007bff";
+      codeMsg.textContent = `Ваш код: ${CONFIG.K}`;
+      solvedContainer.appendChild(codeMsg);
+    }
+
+    generateExample();
   } else {
-    mistakes++;
-    document.getElementById("mistakes").textContent = "Помилки: " + mistakes;
-    document.getElementById("answer").value = ""; // очищаем поле
+    iconEl.textContent = "❌";
+    iconEl.style.color = "red";
+    attempts++;
+    totalErrors++;
+    attemptsEl.textContent = `Помилки: ${attempts}`;
+    answerEl.value = "";
+    answerEl.focus();
   }
 });
 
-document.getElementById("splitBtn").addEventListener("click", function () {
-  const splitContainer = document.getElementById("splitContainer");
-  splitContainer.innerHTML = "";
+// ---- Разложение ----
+splitBtn.addEventListener("click", () => {
+  splitArea.innerHTML = "";
 
-  const inputContainer = document.createElement("div");
-  inputContainer.style.marginTop = "10px";
+  const inputWrap = document.createElement("div");
+  inputWrap.id = "splitInputs";
 
   for (let i = 0; i < 3; i++) {
-    const input = document.createElement("input");
-    input.type = "number";
-    input.style.width = "50px";
-    input.style.marginBottom = "5px";
-    inputContainer.appendChild(input);
-    inputContainer.appendChild(document.createElement("br"));
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.className = "split-input";
+    inp.min = 0;
+    inputWrap.appendChild(inp);
   }
 
   const okBtn = document.createElement("button");
   okBtn.textContent = "Ок";
-  okBtn.classList.add("btn", "btn-small", "btn-primary");
+  okBtn.className = "btn secondary";
+  okBtn.style.width = "auto";
+  okBtn.style.padding = "6px 15px";
+  okBtn.style.marginTop = "10px";
 
-  okBtn.addEventListener("click", function () {
-    const inputs = inputContainer.querySelectorAll("input");
-    const numbers = Array.from(inputs)
-      .map(input => parseInt(input.value))
-      .filter(num => !isNaN(num));
+  splitArea.appendChild(inputWrap);
+  splitArea.appendChild(okBtn);
 
-    if (numbers.length >= 2) {
-      const sum = numbers.reduce((a, b) => a + b, 0);
+  okBtn.addEventListener("click", () => {
+    const inputs = Array.from(document.querySelectorAll(".split-input"))
+      .map(i => Number(i.value.trim()))
+      .filter(n => !isNaN(n) && n > 0);
 
-      if (sum === firstNum) {
-        inputContainer.innerHTML = "";
+    if (inputs.length < 2) return;
+    const sum = inputs.reduce((a,b) => a+b, 0);
 
-        numbers.forEach(num => {
-          const numContainer = document.createElement("div");
-          numContainer.classList.add("row");
+    splitArea.innerHTML = "";
 
-          const numSpan = document.createElement("span");
-          numSpan.classList.add("highlighted");
-          numSpan.textContent = num;
+    const resultDiv = document.createElement("div");
+    resultDiv.className = "split-result";
 
-          const minusBtn = document.createElement("button");
-          minusBtn.textContent = "-";
-          minusBtn.classList.add("btn-small");
+    if (sum === firstNum) {
+      inputs.forEach(num => {
+        const line = document.createElement("div");
+        line.className = "split-number";
+        line.innerHTML = `${num} <span class="split-minus">−</span>`;
+        resultDiv.appendChild(line);
 
-          minusBtn.addEventListener("click", function () {
-            // при клике заменяем число на пример
-            const exampleContainer = document.createElement("span");
-            const input = document.createElement("input");
-            input.type = "number";
-            input.style.width = "50px";
+        const minusIcon = line.querySelector(".split-minus");
+        minusIcon.addEventListener("click", () => {
+          const exampleDiv = document.createElement("div");
+          exampleDiv.className = "split-example";
+          exampleDiv.innerHTML = `${num} - ${secondNum} = <input type="number"> <span></span>`;
+          line.appendChild(exampleDiv);
 
-            exampleContainer.textContent = `${num} - ${secondNum} = `;
-            exampleContainer.appendChild(input);
+          const input = exampleDiv.querySelector("input");
+          const icon = exampleDiv.querySelector("span");
 
-            input.addEventListener("change", function () {
-              const userAns = parseInt(input.value);
-              const correctAns = num - secondNum;
-              if (userAns === correctAns) {
-                // заменяем весь блок на готовый решённый пример
-                numContainer.innerHTML = `<span class="highlighted">${correctAns}</span>`;
-              } else {
-                input.classList.add("error");
-              }
-            });
+          input.addEventListener("change", () => {
+            if (Number(input.value) === num - secondNum) {
+              const val = document.createElement("span");
+              val.className = "solved-value";
+              val.textContent = input.value;
+              exampleDiv.innerHTML = `${num} - ${secondNum} = `;
+              exampleDiv.appendChild(val);
 
-            numContainer.innerHTML = ""; // очищаем блок
-            numContainer.appendChild(exampleContainer);
+              // подсветим и исходное число
+              line.innerHTML = `<span class="solved-value">${num}</span>`;
+            } else {
+              icon.textContent = "❌";
+              icon.style.color = "red";
+            }
           });
-
-          numContainer.appendChild(numSpan);
-          numContainer.appendChild(minusBtn);
-          inputContainer.appendChild(numContainer);
         });
-      } else {
-        alert("Сума неправильна");
-      }
+      });
+    } else {
+      resultDiv.innerHTML = `<span style="color:red;font-size:18px;">❌</span>`;
     }
-  });
 
-  inputContainer.appendChild(okBtn);
-  splitContainer.appendChild(inputContainer);
+    splitArea.appendChild(resultDiv);
+  });
 });
 
+// ---- Первая генерация ----
 generateExample();

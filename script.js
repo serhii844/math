@@ -3,7 +3,8 @@ let attempts = 0;
 let solvedCount = 0;
 let totalErrors = 0;
 
-let firstNum, secondNum; // сохраняем текущие числа примера
+let firstNum, secondNum; // текущие числа примера
+let currentOperation = "-"; // пока используем вычитание для разложения
 
 const exampleEl = document.getElementById("example");
 const answerEl = document.getElementById("answer");
@@ -16,8 +17,10 @@ const splitArea = document.getElementById("splitArea");
 
 // ---- Генерация примера ----
 function generateExample() {
-  const operation = CONFIG.operations[Math.floor(Math.random() * CONFIG.operations.length)];
+  // Берём операцию (по умолчанию поддерживаем '-')
+  currentOperation = CONFIG.operations && CONFIG.operations.length ? CONFIG.operations[Math.floor(Math.random() * CONFIG.operations.length)] : "-";
 
+  // Собираем правила digits
   let firstRules = CONFIG.digits.filter(r => r.startsWith("1=")).map(r => parseInt(r.split("=")[1]));
   let secondRules = CONFIG.digits.filter(r => r.startsWith("2=")).map(r => parseInt(r.split("=")[1]));
 
@@ -30,13 +33,15 @@ function generateExample() {
   firstNum = generateNumber(firstDigits);
   secondNum = generateNumber(secondDigits);
 
+  // Применяем старшинство
   if (CONFIG.order === "1>2" && firstNum <= secondNum) {
     firstNum = secondNum + Math.floor(Math.random() * 9 + 1);
   } else if (CONFIG.order === "1<2" && firstNum >= secondNum) {
     secondNum = firstNum + Math.floor(Math.random() * 9 + 1);
   }
 
-  switch (operation) {
+  // Вычисляем правильный ответ (операция может быть разная, но разложение логично только для вычитания)
+  switch (currentOperation) {
     case "+": correctAnswer = firstNum + secondNum; break;
     case "-": correctAnswer = firstNum - secondNum; break;
     case "*": correctAnswer = firstNum * secondNum; break;
@@ -44,13 +49,18 @@ function generateExample() {
       correctAnswer = Math.floor(firstNum / secondNum);
       firstNum = correctAnswer * secondNum;
       break;
+    default:
+      correctAnswer = firstNum - secondNum;
+      currentOperation = "-";
   }
 
+  // Ограничение результата
   if (correctAnswer > CONFIG.maxResult || correctAnswer < 0) {
     return generateExample();
   }
 
-  exampleEl.textContent = `${firstNum} - ${secondNum}`;
+  // Показываем пример (для разложения важно, чтобы это был вычитальный пример)
+  exampleEl.textContent = `${firstNum} ${currentOperation} ${secondNum}`;
   answerEl.value = "";
   iconEl.textContent = "";
   attemptsEl.textContent = `Помилки: 0`;
@@ -58,13 +68,15 @@ function generateExample() {
   splitArea.innerHTML = "";
 }
 
+// ---- Утилиты ----
 function generateNumber(d) {
+  if (d <= 0) return 0;
   const min = Math.pow(10, d - 1);
   const max = Math.pow(10, d) - 1;
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// ---- Проверка ответа ----
+// ---- Проверка основного ответа ----
 checkBtn.addEventListener("click", () => {
   const userAnswer = answerEl.value.trim();
   if (userAnswer === "") return;
@@ -129,8 +141,14 @@ checkBtn.addEventListener("click", () => {
   }
 });
 
-// ---- Разложение ----
+// ---- Разложение (split) ----
 splitBtn.addEventListener("click", () => {
+  // Разложение релевантно только для вычитания — если операция не "-", показываем предупреждение и выходим
+  if (currentOperation !== "-") {
+    splitArea.innerHTML = `<div style="color:#d9534f; margin-top:8px;">Розклад доступний лише для прикладів віднімання.</div>`;
+    return;
+  }
+
   splitArea.innerHTML = "";
 
   const inputWrap = document.createElement("div");
@@ -141,6 +159,8 @@ splitBtn.addEventListener("click", () => {
     inp.type = "number";
     inp.className = "split-input";
     inp.min = 0;
+    inp.inputMode = "numeric";
+    inp.pattern = "\\d*";
     inputWrap.appendChild(inp);
   }
 
@@ -155,53 +175,109 @@ splitBtn.addEventListener("click", () => {
   splitArea.appendChild(okBtn);
 
   okBtn.addEventListener("click", () => {
-    const inputs = Array.from(document.querySelectorAll(".split-input"))
-      .map(i => Number(i.value.trim()))
-      .filter(n => !isNaN(n) && n > 0);
+    const inputs = Array.from(inputWrap.querySelectorAll("input"))
+      .map(i => i.value.trim())
+      .filter(v => v !== "")
+      .map(Number)
+      .filter(n => !isNaN(n) && n >= 0);
 
-    if (inputs.length < 2) return;
-    const sum = inputs.reduce((a,b) => a+b, 0);
+    if (inputs.length < 2) {
+      // мало чисел — ничего не делаем
+      return;
+    }
 
-    splitArea.innerHTML = "";
+    const sum = inputs.reduce((a, b) => a + b, 0);
+
+    splitArea.innerHTML = ""; // очищаем поля ввода
 
     const resultDiv = document.createElement("div");
     resultDiv.className = "split-result";
 
     if (sum === firstNum) {
+      // Успешное разложение — показываем каждое число в строке с иконкой минус
       inputs.forEach(num => {
         const line = document.createElement("div");
         line.className = "split-number";
-        line.innerHTML = `${num} <span class="split-minus">−</span>`;
+
+        // span с самим числом (оставляем отдельный span, чтобы позже выделять его стилем)
+        const numberSpan = document.createElement("span");
+        numberSpan.className = "split-number-value";
+        numberSpan.textContent = num;
+
+        // минус-иконка
+        const minusIcon = document.createElement("span");
+        minusIcon.className = "split-minus";
+        minusIcon.textContent = "−";
+        minusIcon.title = "Показати приклад";
+        minusIcon.style.userSelect = "none";
+
+        line.appendChild(numberSpan);
+        line.appendChild(minusIcon);
         resultDiv.appendChild(line);
 
-        const minusIcon = line.querySelector(".split-minus");
+        // Обработчик клика по минусу — создаём под-пример (num - secondNum = input)
         minusIcon.addEventListener("click", () => {
+          // Если под-пример уже есть (следующий sibling) — ничего не создаём повторно
+          if (line.nextElementSibling && line.nextElementSibling.classList.contains("split-example")) {
+            return;
+          }
+
           const exampleDiv = document.createElement("div");
           exampleDiv.className = "split-example";
-          exampleDiv.innerHTML = `${num} - ${secondNum} = <input type="number"> <span></span>`;
-          line.appendChild(exampleDiv);
 
-          const input = exampleDiv.querySelector("input");
-          const icon = exampleDiv.querySelector("span");
+          // Текст и поле ввода для ответа
+          const textNode = document.createTextNode(`${num} - ${secondNum} = `);
+          const smallInput = document.createElement("input");
+          smallInput.type = "number";
+          smallInput.className = "split-input";
+          smallInput.style.width = "70px";
+          smallInput.inputMode = "numeric";
+          smallInput.pattern = "\\d*";
 
-          input.addEventListener("change", () => {
-            if (Number(input.value) === num - secondNum) {
-              const val = document.createElement("span");
-              val.className = "solved-value";
-              val.textContent = input.value;
-              exampleDiv.innerHTML = `${num} - ${secondNum} = `;
-              exampleDiv.appendChild(val);
+          const iconSpan = document.createElement("span");
+          iconSpan.style.marginLeft = "8px";
 
-              // подсветим и исходное число
-              line.innerHTML = `<span class="solved-value">${num}</span>`;
+          exampleDiv.appendChild(textNode);
+          exampleDiv.appendChild(smallInput);
+          exampleDiv.appendChild(iconSpan);
+
+          // Вставляем exampleDiv ПОСЛЕ текущей строки line
+          line.parentNode.insertBefore(exampleDiv, line.nextSibling);
+
+          // Проверка маленького ответа (по событию change — можно использовать Enter/потерю фокуса)
+          smallInput.addEventListener("change", () => {
+            const user = smallInput.value.trim();
+            if (user === "") return;
+
+            const needed = num - secondNum;
+            if (Number(user) === needed) {
+              // Важно: показываем правильный ответ (результат), а не первое число
+              // Заменяем exampleDiv содержимое на solved example с выделенным ответом
+              exampleDiv.innerHTML = `${num} - ${secondNum} = <span class="solved-value">${needed}</span>`;
+
+              // Выделяем стилем все числа-разложения (включая текущий num и другие)
+              const allNumberSpans = resultDiv.querySelectorAll(".split-number-value");
+              allNumberSpans.forEach(s => {
+                // оборачиваем содержимое в span.solved-value если ещё не обёрнуто
+                if (!s.classList.contains("solved-applied")) {
+                  // добавить класс визуального выделения (solved-value)
+                  s.classList.add("solved-applied");
+                  s.classList.add("solved-value");
+                }
+              });
+
+              // После успеха можно убрать минусик (чтобы не создавать ещё раз)
+              minusIcon.style.visibility = "hidden";
             } else {
-              icon.textContent = "❌";
-              icon.style.color = "red";
+              // Неправильно — показываем красный крестик рядом
+              iconSpan.textContent = "❌";
+              iconSpan.style.color = "red";
             }
           });
         });
       });
     } else {
+      // Некорректная сумма — показываем крестик
       resultDiv.innerHTML = `<span style="color:red;font-size:18px;">❌</span>`;
     }
 
@@ -209,5 +285,5 @@ splitBtn.addEventListener("click", () => {
   });
 });
 
-// ---- Первая генерация ----
+// ---- Инициализация ----
 generateExample();

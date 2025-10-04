@@ -3,84 +3,77 @@ let attempts = 0;
 let solvedCount = 0;
 let totalErrors = 0;
 
+let firstNum, secondNum; // сохраняем текущие числа примера
+
 const exampleEl = document.getElementById("example");
 const answerEl = document.getElementById("answer");
 const checkBtn = document.getElementById("checkBtn");
+const splitBtn = document.getElementById("splitBtn");
 const iconEl = document.getElementById("icon");
 const attemptsEl = document.getElementById("attempts");
 const solvedContainer = document.getElementById("solvedContainer");
+const splitArea = document.getElementById("splitArea");
 
+// ---- Генерация примера ----
 function generateExample() {
-  // Выбираем операцию
   const operation = CONFIG.operations[Math.floor(Math.random() * CONFIG.operations.length)];
 
-  // Собираем все варианты для каждого числа
   let firstRules = CONFIG.digits.filter(r => r.startsWith("1=")).map(r => parseInt(r.split("=")[1]));
   let secondRules = CONFIG.digits.filter(r => r.startsWith("2=")).map(r => parseInt(r.split("=")[1]));
 
-  // Если в конфиге не указано — по умолчанию двузначные
   if (firstRules.length === 0) firstRules = [2];
   if (secondRules.length === 0) secondRules = [2];
 
-  // Случайно выбираем количество цифр для каждого числа
   const firstDigits = firstRules[Math.floor(Math.random() * firstRules.length)];
   const secondDigits = secondRules[Math.floor(Math.random() * secondRules.length)];
 
-  // Генерируем числа
-  let firstNumber = generateNumber(firstDigits);
-  let secondNumber = generateNumber(secondDigits);
+  firstNum = generateNumber(firstDigits);
+  secondNum = generateNumber(secondDigits);
 
-  // Применяем правило старшинства
-  if (CONFIG.order === "1>2" && firstNumber <= secondNumber) {
-    firstNumber = secondNumber + Math.floor(Math.random() * 9 + 1);
-  } else if (CONFIG.order === "1<2" && firstNumber >= secondNumber) {
-    secondNumber = firstNumber + Math.floor(Math.random() * 9 + 1);
+  if (CONFIG.order === "1>2" && firstNum <= secondNum) {
+    firstNum = secondNum + Math.floor(Math.random() * 9 + 1);
+  } else if (CONFIG.order === "1<2" && firstNum >= secondNum) {
+    secondNum = firstNum + Math.floor(Math.random() * 9 + 1);
   }
 
-  // Вычисляем правильный ответ
   switch (operation) {
-    case "+": correctAnswer = firstNumber + secondNumber; break;
-    case "-": correctAnswer = firstNumber - secondNumber; break;
-    case "*": correctAnswer = firstNumber * secondNumber; break;
+    case "+": correctAnswer = firstNum + secondNum; break;
+    case "-": correctAnswer = firstNum - secondNum; break;
+    case "*": correctAnswer = firstNum * secondNum; break;
     case "/":
-      // чтобы делилось без остатка
-      correctAnswer = Math.floor(firstNumber / secondNumber);
-      firstNumber = correctAnswer * secondNumber;
+      correctAnswer = Math.floor(firstNum / secondNum);
+      firstNum = correctAnswer * secondNum;
       break;
   }
 
-  // Ограничение результата
   if (correctAnswer > CONFIG.maxResult || correctAnswer < 0) {
-    return generateExample(); // пробуем снова
+    return generateExample();
   }
 
-  // Отображаем пример
-  exampleEl.textContent = `${firstNumber} ${operation} ${secondNumber}`;
+  exampleEl.textContent = `${firstNum} - ${secondNum}`;
   answerEl.value = "";
   iconEl.textContent = "";
   attemptsEl.textContent = `Помилки: 0`;
   attempts = 0;
+  splitArea.innerHTML = "";
 }
 
-// Генерация числа по количеству цифр
-function generateNumber(digits) {
-  if (digits <= 0) return 0;
-  const min = Math.pow(10, digits - 1);
-  const max = Math.pow(10, digits) - 1;
+function generateNumber(d) {
+  const min = Math.pow(10, d - 1);
+  const max = Math.pow(10, d) - 1;
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Проверка ответа
+// ---- Проверка ответа ----
 checkBtn.addEventListener("click", () => {
   const userAnswer = answerEl.value.trim();
-  if (userAnswer === "") return; // запрет пустого ответа
+  if (userAnswer === "") return;
 
   if (Number(userAnswer) === correctAnswer) {
     solvedCount++;
     iconEl.textContent = "✔️";
     iconEl.style.color = "green";
 
-    // Счётчик решённых
     let solvedCounter = document.getElementById("solvedCounter");
     if (!solvedCounter) {
       solvedCounter = document.createElement("div");
@@ -91,7 +84,6 @@ checkBtn.addEventListener("click", () => {
       solvedCounter.textContent = `Вирішено прикладів: ${solvedCount}`;
     }
 
-    // Счётчик всех ошибок
     let totalErrorsEl = document.getElementById("totalErrors");
     if (!totalErrorsEl) {
       totalErrorsEl = document.createElement("div");
@@ -101,10 +93,8 @@ checkBtn.addEventListener("click", () => {
     }
     totalErrorsEl.textContent = `Всього помилок: ${totalErrors}`;
 
-    // Перемещаем решённый пример вниз
     const solvedExample = document.createElement("div");
     solvedExample.classList.add("solved-example");
-
     let text = `${exampleEl.textContent} = ${correctAnswer}`;
     let greenIcon = `<span class="icon-green">✔️</span>`;
     if (attempts > 0) {
@@ -116,7 +106,6 @@ checkBtn.addEventListener("click", () => {
     solvedExample.innerHTML = text;
     solvedContainer.appendChild(solvedExample);
 
-    // Если достигли лимита N — показать код
     if (solvedCount === CONFIG.N) {
       const codeMsg = document.createElement("div");
       codeMsg.className = "code-msg";
@@ -135,10 +124,90 @@ checkBtn.addEventListener("click", () => {
     attempts++;
     totalErrors++;
     attemptsEl.textContent = `Помилки: ${attempts}`;
-    answerEl.value = ""; // очищаем поле
+    answerEl.value = "";
     answerEl.focus();
   }
 });
 
-// Первая генерация
+// ---- Разложение ----
+splitBtn.addEventListener("click", () => {
+  splitArea.innerHTML = "";
+
+  const inputWrap = document.createElement("div");
+  inputWrap.id = "splitInputs";
+
+  for (let i = 0; i < 3; i++) {
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.className = "split-input";
+    inp.min = 0;
+    inputWrap.appendChild(inp);
+  }
+
+  const okBtn = document.createElement("button");
+  okBtn.textContent = "Ок";
+  okBtn.className = "btn secondary";
+  okBtn.style.width = "auto";
+  okBtn.style.padding = "6px 15px";
+  okBtn.style.marginTop = "10px";
+
+  splitArea.appendChild(inputWrap);
+  splitArea.appendChild(okBtn);
+
+  okBtn.addEventListener("click", () => {
+    const inputs = Array.from(document.querySelectorAll(".split-input"))
+      .map(i => Number(i.value.trim()))
+      .filter(n => !isNaN(n) && n > 0);
+
+    if (inputs.length < 2) return;
+    const sum = inputs.reduce((a,b) => a+b, 0);
+
+    splitArea.innerHTML = "";
+
+    const resultDiv = document.createElement("div");
+    resultDiv.className = "split-result";
+
+    if (sum === firstNum) {
+      inputs.forEach(num => {
+        const line = document.createElement("div");
+        line.className = "split-number";
+        line.innerHTML = `${num} <span class="split-minus">−</span>`;
+        resultDiv.appendChild(line);
+
+        const minusIcon = line.querySelector(".split-minus");
+        minusIcon.addEventListener("click", () => {
+          const exampleDiv = document.createElement("div");
+          exampleDiv.className = "split-example";
+          exampleDiv.innerHTML = `${num} - ${secondNum} = <input type="number"> <span></span>`;
+          line.appendChild(exampleDiv);
+
+          const input = exampleDiv.querySelector("input");
+          const icon = exampleDiv.querySelector("span");
+
+          input.addEventListener("change", () => {
+            if (Number(input.value) === num - secondNum) {
+              const val = document.createElement("span");
+              val.className = "solved-value";
+              val.textContent = input.value;
+              exampleDiv.innerHTML = `${num} - ${secondNum} = `;
+              exampleDiv.appendChild(val);
+
+              // подсветим и исходное число
+              line.innerHTML = `<span class="solved-value">${num}</span>`;
+            } else {
+              icon.textContent = "❌";
+              icon.style.color = "red";
+            }
+          });
+        });
+      });
+    } else {
+      resultDiv.innerHTML = `<span style="color:red;font-size:18px;">❌</span>`;
+    }
+
+    splitArea.appendChild(resultDiv);
+  });
+});
+
+// ---- Первая генерация ----
 generateExample();

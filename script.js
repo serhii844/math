@@ -250,29 +250,38 @@ splitBtn.addEventListener("click", () => {
             if (user === "") return;
 
             const needed = num - secondNum;
-if (Number(user) === needed) {
-  // Показываем правильный ответ (результат), а не первое число
-  exampleDiv.innerHTML = `${num} - ${secondNum} = <span class="solved-value">${needed}</span>`;
+            if (Number(user) === needed) {
+  // Создаём готовую строку-решение и заменяем оригинальную строку (line)
+  const solvedLine = document.createElement("div");
+  solvedLine.className = "split-number";
+  solvedLine.innerHTML = `${num} - ${secondNum} = <span class="solved-value">${needed}</span>`;
 
+  // Заменяем элемент line на solvedLine — это убирает лишнее число
+  if (line && line.parentNode) {
+    line.parentNode.replaceChild(solvedLine, line);
+  }
 
-              // Выделяем стилем все числа-разложения (включая текущий num и другие)
-              const allNumberSpans = resultDiv.querySelectorAll(".split-number-value");
-              allNumberSpans.forEach(s => {
-                // оборачиваем содержимое в span.solved-value если ещё не обёрнуто
-                if (!s.classList.contains("solved-applied")) {
-                  // добавить класс визуального выделения (solved-value)
-                  s.classList.add("solved-applied");
-                  s.classList.add("solved-value");
-                }
-              });
+  // Удаляем вставленный exampleDiv (он больше не нужен)
+  if (exampleDiv && exampleDiv.parentNode) {
+    exampleDiv.parentNode.removeChild(exampleDiv);
+  }
 
-              // После успеха можно убрать минусик (чтобы не создавать ещё раз)
-              minusIcon.style.visibility = "hidden";
-            } else {
-              // Неправильно — показываем красный крестик рядом
-              iconSpan.textContent = "❌";
-              iconSpan.style.color = "red";
-            }
+  // Подсветим остальные числа-разложения, если нужно
+  const allNumberSpans = resultDiv.querySelectorAll(".split-number-value");
+  allNumberSpans.forEach(s => {
+    if (!s.classList.contains("solved-applied")) {
+      s.classList.add("solved-applied");
+      s.classList.add("solved-value");
+    }
+  });
+
+  // Убираем доступ к минусу (если он ещё виден)
+  minusIcon.style.visibility = "hidden";
+} else {
+  iconSpan.textContent = "❌";
+  iconSpan.style.color = "red";
+}
+
           });
         });
       });

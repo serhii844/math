@@ -250,10 +250,10 @@ splitBtn.addEventListener("click", () => {
             if (user === "") return;
 
             const needed = num - secondNum;
-            if (Number(user) === needed) {
-              // Важно: показываем правильный ответ (результат), а не первое число
-              // Заменяем exampleDiv содержимое на solved example с выделенным ответом
-              exampleDiv.innerHTML = `${num} - ${secondNum} = <span class="solved-value">${needed}</span>`;
+if (Number(user) === needed) {
+  // Показываем правильный ответ (результат), а не первое число
+  exampleDiv.innerHTML = `${num} - ${secondNum} = <span class="solved-value">${needed}</span>`;
+
 
               // Выделяем стилем все числа-разложения (включая текущий num и другие)
               const allNumberSpans = resultDiv.querySelectorAll(".split-number-value");

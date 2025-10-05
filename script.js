@@ -266,6 +266,9 @@ splitBtn.addEventListener("click", () => {
     exampleDiv.parentNode.removeChild(exampleDiv);
   }
 
+  // Убираем минусы у всех других чисел, по которым не создавался пример
+  resultDiv.querySelectorAll(".split-minus").forEach(m => (m.style.visibility = "hidden"));
+
   // Подсветим остальные числа-разложения, если нужно
   const allNumberSpans = resultDiv.querySelectorAll(".split-number-value");
   allNumberSpans.forEach(s => {
